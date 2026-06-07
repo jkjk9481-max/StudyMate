@@ -1,0 +1,156 @@
+# Codex Note
+
+## 사용자 지시사항
+
+- 사용자는 초보자이다.
+- 사용자가 직접 코드를 작성한다.
+- Codex는 사용자가 명시적으로 요청하지 않는 한 완성 코드를 바로 제공하지 않는다.
+- Codex는 구현자가 아니라 선생님/리뷰어 역할을 한다.
+- Codex는 개념을 설명하고, 사용자가 작성한 코드를 리뷰하고, 다음 단계를 안내한다.
+- 사용자가 막혔을 때도 바로 정답 코드를 주기보다 먼저 힌트와 방향을 제공한다.
+
+## 프로젝트 목표
+
+StudyMate 백엔드를 만들고, 이후 웹사이트와 연결한다.
+
+현재 만들고 있는 기능은 회원가입이다.
+
+## 지금까지 한 일
+
+### 1. AGENTS.md 생성
+
+프로젝트 루트에 `AGENTS.md` 파일을 생성했다.
+
+이 파일에는 다음 내용이 정리되어 있다.
+
+- 사용자는 초보자이다.
+- 사용자가 직접 코드를 작성한다.
+- Codex는 선생님/리뷰어 역할을 한다.
+- Codex는 사용자가 명시적으로 요청하지 않는 한 직접 구현을 대신하지 않는다.
+
+### 2. UserController 흐름 시작
+
+`UserController`는 사용자 관련 API 요청을 받는 역할을 한다.
+
+회원가입 API 흐름은 다음 방향으로 진행 중이다.
+
+- 클라이언트가 회원가입 요청을 보낸다.
+- Controller가 요청 DTO를 받는다.
+- Controller가 DTO를 `UserService`로 넘긴다.
+- Service가 실제 회원가입 로직을 처리한다.
+- Service가 `UserResponse`를 반환한다.
+
+### 3. UserSignUpRequest 생성
+
+회원가입 요청을 받기 위한 DTO인 `UserSignUpRequest`를 생성했다.
+
+포함된 필드:
+
+- `email`
+- `password`
+- `name`
+
+검증 어노테이션:
+
+- 필수값 검증을 위해 `@NotBlank` 사용
+- 이메일 형식 검증을 위해 `@Email` 사용
+- 비밀번호 최소 길이 검증을 위해 `@Size(min = 10)` 사용
+
+### 4. User 엔티티 수정
+
+`User` 엔티티에 다음 필드를 추가했다.
+
+- `password`
+
+회원가입에 사용할 생성자도 추가했다.
+
+- `name`
+- `email`
+- `password`
+
+중요한 점:
+
+- `id`는 DB가 자동 생성해야 한다.
+- `createdAt`, `updatedAt`은 `@PrePersist`, `@PreUpdate` 같은 생명주기 메서드에서 처리한다.
+- 그래서 엔티티에 모든 필드를 받는 `@AllArgsConstructor`를 무조건 붙이는 방식은 추천하지 않는다.
+
+### 5. UserService 회원가입 로직 추가
+
+`UserService`에 회원가입 로직을 추가했다.
+
+현재 회원가입 흐름:
+
+1. `UserSignUpRequest`를 받는다.
+2. `userRepository.existsByEmail(...)`로 이메일 중복 여부를 확인한다.
+3. 이미 존재하는 이메일이면 오류를 발생시킨다.
+4. 존재하지 않는 이메일이면 새 `User` 객체를 만든다.
+5. `UserRepository`로 `User`를 DB에 저장한다.
+6. 저장된 `User`를 `UserResponse`로 변환해서 반환한다.
+
+현재 중요한 문제:
+
+- 비밀번호가 아직 그대로 저장되고 있다.
+- 학습 과정에서 흐름을 이해하는 단계로는 괜찮지만, 실제 회원가입 기능에서는 반드시 암호화해야 한다.
+
+## 현재 회원가입 흐름
+
+요청:
+
+```text
+POST /api/users/signup
+```
+
+요청 데이터:
+
+```text
+email
+password
+name
+```
+
+전체 흐름:
+
+```text
+클라이언트
+-> UserController
+-> UserService.signUpUser(...)
+-> UserRepository.existsByEmail(...)
+-> new User(name, email, password)
+-> userRepository.save(...)
+-> UserResponse
+-> 클라이언트
+```
+
+## 다음 단계
+
+다음 진도: 비밀번호 암호화
+
+목표:
+
+`UserSignUpRequest`로 들어온 원본 비밀번호를 DB에 그대로 저장하지 않는다.
+
+목표 흐름:
+
+```text
+요청 비밀번호
+-> 암호화된 비밀번호
+-> User 엔티티
+-> DB 저장
+```
+
+다음에 배울 내용:
+
+1. `PasswordEncoder`가 무엇인지
+2. `BCryptPasswordEncoder`가 무엇인지
+3. `PasswordEncoder`를 Spring Bean으로 등록하는 방법
+4. `UserService`에서 `PasswordEncoder`를 주입받는 방법
+5. 회원가입 흐름 안에서 비밀번호를 암호화하는 방법
+6. DB에 원본 비밀번호가 아니라 암호화된 값이 저장되는지 확인하는 방법
+
+중요 개념:
+
+- 비밀번호는 복호화해서 원래 값으로 되돌리는 방식이 아니다.
+- 나중에 로그인 기능을 만들 때는 로그인 요청으로 들어온 원본 비밀번호와 DB에 저장된 암호화 비밀번호를 비교한다.
+- 이 비교는 `PasswordEncoder`의 비밀번호 매칭 기능을 사용한다.
+
+지금은 로그인까지 가지 않고, 회원가입 시 비밀번호를 암호화해서 저장하는 것까지만 구현한다.
