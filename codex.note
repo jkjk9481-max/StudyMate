@@ -1,100 +1,45 @@
 # Codex Note
 
-## 사용자 지시사항
+## 작업 방식
 
-- 사용자는 초보자이다.
-- 사용자가 직접 코드를 작성한다.
-- Codex는 사용자가 명시적으로 요청하지 않는 한 완성 코드를 바로 제공하지 않는다.
-- Codex는 구현자가 아니라 선생님/리뷰어 역할을 한다.
-- Codex는 개념을 설명하고, 사용자가 작성한 코드를 리뷰하고, 다음 단계를 안내한다.
-- 사용자가 막혔을 때도 바로 정답 코드를 주기보다 먼저 힌트와 방향을 제공한다.
+- 사용자는 초보자이며, 직접 코드를 작성하면서 배우는 것을 목표로 한다.
+- Codex는 기본적으로 선생님/리뷰어 역할을 한다.
+- 사용자가 명시적으로 요청하지 않으면 프로젝트 코드를 직접 수정하지 않는다.
+- 사용자가 "코드를 작성해줘"라고 요청한 경우에만 필요한 범위에서 직접 수정한다.
+- 설명은 흐름, 개념, 왜 이렇게 하는지를 중심으로 한다.
 
 ## 프로젝트 목표
 
-StudyMate 백엔드를 만들고, 이후 웹사이트와 연결한다.
+StudyMate 백엔드를 만들고, 이후 프론트엔드와 연결한다.
 
-현재 만들고 있는 기능은 회원가입이다.
+현재 학습/구현 중인 핵심 기능은 사용자 인증 흐름이다.
 
-## 지금까지 한 일
+현재 큰 흐름:
 
-### 1. AGENTS.md 생성
+```text
+회원가입
+-> 비밀번호 암호화 저장
+-> 로그인
+-> 로그인 성공 시 JWT 발급
+```
 
-프로젝트 루트에 `AGENTS.md` 파일을 생성했다.
+아직 JWT 인증 필터는 만들지 않는다.
 
-이 파일에는 다음 내용이 정리되어 있다.
+## 지금까지 완료한 것
 
-- 사용자는 초보자이다.
+### 1. AGENTS.md 작성
+
+프로젝트 루트에 `AGENTS.md`를 작성했다.
+
+핵심 규칙:
+
 - 사용자가 직접 코드를 작성한다.
 - Codex는 선생님/리뷰어 역할을 한다.
-- Codex는 사용자가 명시적으로 요청하지 않는 한 직접 구현을 대신하지 않는다.
+- Codex는 사용자가 명시적으로 요청하지 않으면 직접 구현하지 않는다.
 
-### 2. UserController 흐름 시작
+### 2. 회원가입 API 기본 흐름 작성
 
-`UserController`는 사용자 관련 API 요청을 받는 역할을 한다.
-
-회원가입 API 흐름은 다음 방향으로 진행 중이다.
-
-- 클라이언트가 회원가입 요청을 보낸다.
-- Controller가 요청 DTO를 받는다.
-- Controller가 DTO를 `UserService`로 넘긴다.
-- Service가 실제 회원가입 로직을 처리한다.
-- Service가 `UserResponse`를 반환한다.
-
-### 3. UserSignUpRequest 생성
-
-회원가입 요청을 받기 위한 DTO인 `UserSignUpRequest`를 생성했다.
-
-포함된 필드:
-
-- `email`
-- `password`
-- `name`
-
-검증 어노테이션:
-
-- 필수값 검증을 위해 `@NotBlank` 사용
-- 이메일 형식 검증을 위해 `@Email` 사용
-- 비밀번호 최소 길이 검증을 위해 `@Size(min = 10)` 사용
-
-### 4. User 엔티티 수정
-
-`User` 엔티티에 다음 필드를 추가했다.
-
-- `password`
-
-회원가입에 사용할 생성자도 추가했다.
-
-- `name`
-- `email`
-- `password`
-
-중요한 점:
-
-- `id`는 DB가 자동 생성해야 한다.
-- `createdAt`, `updatedAt`은 `@PrePersist`, `@PreUpdate` 같은 생명주기 메서드에서 처리한다.
-- 그래서 엔티티에 모든 필드를 받는 `@AllArgsConstructor`를 무조건 붙이는 방식은 추천하지 않는다.
-
-### 5. UserService 회원가입 로직 추가
-
-`UserService`에 회원가입 로직을 추가했다.
-
-현재 회원가입 흐름:
-
-1. `UserSignUpRequest`를 받는다.
-2. `userRepository.existsByEmail(...)`로 이메일 중복 여부를 확인한다.
-3. 이미 존재하는 이메일이면 오류를 발생시킨다.
-4. 존재하지 않는 이메일이면 새 `User` 객체를 만든다.
-5. `UserRepository`로 `User`를 DB에 저장한다.
-6. 저장된 `User`를 `UserResponse`로 변환해서 반환한다.
-
-현재 중요한 문제:
-
-- 비밀번호가 아직 그대로 저장되고 있다.
-- 학습 과정에서 흐름을 이해하는 단계로는 괜찮지만, 실제 회원가입 기능에서는 반드시 암호화해야 한다.
-
-## 현재 회원가입 흐름
-
-요청:
+회원가입 요청 주소:
 
 ```text
 POST /api/users/signup
@@ -108,49 +53,474 @@ password
 name
 ```
 
-전체 흐름:
+현재 흐름:
 
 ```text
-클라이언트
--> UserController
+Client
+-> UserController.signUp(...)
 -> UserService.signUpUser(...)
 -> UserRepository.existsByEmail(...)
--> new User(name, email, password)
+-> User 생성
 -> userRepository.save(...)
--> UserResponse
--> 클라이언트
+-> UserResponse 반환
 ```
 
-## 다음 단계
+### 3. UserSignUpRequest 작성
 
-다음 진도: 비밀번호 암호화
+회원가입 요청 DTO인 `UserSignUpRequest`를 작성했다.
 
-목표:
+필드:
 
-`UserSignUpRequest`로 들어온 원본 비밀번호를 DB에 그대로 저장하지 않는다.
+- `email`
+- `password`
+- `name`
 
-목표 흐름:
+검증:
+
+- `email`: `@NotBlank`, `@Email`
+- `password`: `@NotBlank`, `@Size(min = 10)`
+- `name`: `@NotBlank`
+
+### 4. User 엔티티 수정
+
+`User` 엔티티에 회원가입에 필요한 필드를 추가했다.
+
+필드:
+
+- `id`
+- `name`
+- `email`
+- `password`
+- `createdAt`
+- `updatedAt`
+
+시간 처리:
+
+- `@PrePersist`에서 `createdAt`, `updatedAt` 설정
+- `@PreUpdate`에서 `updatedAt` 갱신
+
+### 5. 비밀번호 암호화 적용
+
+Spring Security 의존성을 추가했다.
+
+```gradle
+implementation 'org.springframework.boot:spring-boot-starter-security'
+```
+
+`SecurityConfig`에 `PasswordEncoder` Bean을 등록했다.
+
+현재 회원가입 비밀번호 처리 흐름:
 
 ```text
-요청 비밀번호
--> 암호화된 비밀번호
--> User 엔티티
--> DB 저장
+String rawPassword = request.getPassword()
+String encodedPassword = passwordEncoder.encode(rawPassword)
+new User(name, email, encodedPassword)
 ```
-
-다음에 배울 내용:
-
-1. `PasswordEncoder`가 무엇인지
-2. `BCryptPasswordEncoder`가 무엇인지
-3. `PasswordEncoder`를 Spring Bean으로 등록하는 방법
-4. `UserService`에서 `PasswordEncoder`를 주입받는 방법
-5. 회원가입 흐름 안에서 비밀번호를 암호화하는 방법
-6. DB에 원본 비밀번호가 아니라 암호화된 값이 저장되는지 확인하는 방법
 
 중요 개념:
 
-- 비밀번호는 복호화해서 원래 값으로 되돌리는 방식이 아니다.
-- 나중에 로그인 기능을 만들 때는 로그인 요청으로 들어온 원본 비밀번호와 DB에 저장된 암호화 비밀번호를 비교한다.
-- 이 비교는 `PasswordEncoder`의 비밀번호 매칭 기능을 사용한다.
+```text
+회원가입: passwordEncoder.encode(...)
+로그인: passwordEncoder.matches(...)
+```
 
-지금은 로그인까지 가지 않고, 회원가입 시 비밀번호를 암호화해서 저장하는 것까지만 구현한다.
+DB에는 원본 비밀번호가 아니라 BCrypt로 암호화된 비밀번호가 저장되어야 한다.
+
+### 6. 로그인 API 기본 흐름 작성
+
+로그인 요청 DTO인 `UserLoginRequest`를 작성했다.
+
+필드:
+
+- `email`
+- `password`
+
+로그인 요청 주소:
+
+```text
+POST /api/users/login
+```
+
+현재 로그인 흐름:
+
+```text
+Client
+-> UserController.login(...)
+-> UserService.loginUser(...)
+-> UserRepository.findByEmail(...)
+-> passwordEncoder.matches(...)
+-> UserResponse 반환
+```
+
+`UserRepository`에는 이메일로 사용자를 찾기 위한 메서드를 추가했다.
+
+```text
+findByEmail(email)
+```
+
+### 7. Spring Security 요청 허용 설정
+
+`spring-boot-starter-security`를 추가하면 기본적으로 API 요청이 막힐 수 있다.
+
+그래서 `SecurityConfig`에 `SecurityFilterChain` Bean을 추가했다.
+
+현재 허용된 요청:
+
+```text
+/api/users/signup
+/api/users/login
+```
+
+현재 보안 흐름:
+
+```text
+/api/users/signup -> 인증 없이 허용
+/api/users/login -> 인증 없이 허용
+그 외 요청 -> 인증 필요
+```
+
+CSRF는 현재 JSON API 테스트 단계이므로 비활성화했다.
+
+### 8. JWT 의존성 추가
+
+JJWT 의존성을 추가했다.
+
+```gradle
+implementation 'io.jsonwebtoken:jjwt-api:0.13.0'
+runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.13.0'
+runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.13.0'
+```
+
+역할:
+
+- `jjwt-api`: 코드에서 사용하는 JWT API
+- `jjwt-impl`: 실제 JWT 생성/검증 구현체
+- `jjwt-jackson`: JWT 내부 JSON 처리
+
+### 9. JWT 설정값 추가
+
+`application.properties`에 JWT 설정값을 추가했다.
+
+```properties
+jwt.secret=studyMateJwtSecretKeyForPracticeOnlyMustBeLongEnough123456
+jwt.expiration=3600000
+```
+
+의미:
+
+- `jwt.secret`: JWT 서명에 사용할 비밀키
+- `jwt.expiration`: 토큰 만료 시간, 현재 1시간
+
+### 10. JwtTokenProvider 파일 생성
+
+`JwtTokenProvider` 클래스를 생성했다.
+
+현재 만든 필드:
+
+- `secret`
+- `expiration`
+- `secretKey`
+
+아직 실제 토큰 생성 메서드는 완성하지 않았다.
+
+### 11. LoginResponse DTO 생성
+
+로그인 성공 시 토큰을 응답으로 내려주기 위한 DTO인 `LoginResponse`를 생성했다.
+
+현재 필드:
+
+- `accessToken`
+- `tokenType`
+- `userId`
+- `email`
+- `name`
+
+## 아직 못한 것
+
+### 1. JwtTokenProvider가 아직 Spring Bean이 아님
+
+현재 `JwtTokenProvider`에 `@Component`가 없으면 `UserService`에서 자동 주입받을 수 없다.
+
+다음에 확인할 것:
+
+```text
+JwtTokenProvider에 @Component가 있는가?
+```
+
+### 2. application.properties 값을 아직 읽지 않음
+
+`jwt.secret`, `jwt.expiration` 값을 `JwtTokenProvider`에서 읽어야 한다.
+
+다음에 배울 것:
+
+```text
+@Value("${jwt.secret}")
+@Value("${jwt.expiration}")
+```
+
+### 3. secretKey 생성 로직이 아직 없음
+
+JWT 서명에는 단순 문자열이 아니라 `SecretKey` 객체가 필요하다.
+
+다음에 할 일:
+
+```text
+secret 문자열
+-> 바이트로 변환
+-> SecretKey 생성
+```
+
+### 4. createToken 메서드가 아직 없음
+
+`JwtTokenProvider`에 토큰 생성 메서드가 필요하다.
+
+필요한 메서드:
+
+```text
+createToken(Long userId, String email)
+```
+
+역할:
+
+```text
+로그인 성공한 사용자 정보로 JWT 문자열 생성
+```
+
+### 5. LoginResponse에 생성자가 없음
+
+현재 `LoginResponse`는 필드만 있고 값을 넣을 방법이 부족하다.
+
+다음 중 하나가 필요하다.
+
+```text
+@AllArgsConstructor 추가
+또는 직접 생성자 작성
+```
+
+### 6. UserService.loginUser 반환 타입이 아직 UserResponse임
+
+JWT 발급 후에는 로그인 성공 응답에 토큰이 포함되어야 한다.
+
+현재 목표에서는 `loginUser` 반환 타입을 `LoginResponse`로 바꿔야 한다.
+
+### 7. UserController.login 반환 타입도 바뀌어야 함
+
+`UserService.loginUser()`가 `LoginResponse`를 반환하면 `UserController.login()`도 `LoginResponse`를 반환해야 한다.
+
+### 8. JwtAuthenticationFilter는 아직 만들지 않음
+
+현재 목표는 로그인 성공 시 JWT 발급까지만이다.
+
+아직 하지 않을 것:
+
+```text
+Authorization 헤더 읽기
+JWT 검증 필터 만들기
+SecurityContext에 인증 정보 넣기
+```
+
+## 다음에 해야 할 것
+
+다음 목표:
+
+```text
+로그인 성공 시 JWT 토큰 발급하기
+```
+
+추천 작업 순서:
+
+### 1. JwtTokenProvider를 Spring Bean으로 만들기
+
+`JwtTokenProvider`에 Spring이 관리할 수 있는 어노테이션을 붙인다.
+
+목표:
+
+```text
+UserService에서 JwtTokenProvider를 생성자로 주입받을 수 있게 만들기
+```
+
+### 2. JWT 설정값 읽기
+
+`application.properties`에 있는 값을 `JwtTokenProvider`에서 읽는다.
+
+읽을 값:
+
+```text
+jwt.secret
+jwt.expiration
+```
+
+### 3. SecretKey 만들기
+
+`jwt.secret` 문자열을 이용해서 JWT 서명용 `SecretKey`를 만든다.
+
+주의:
+
+```text
+비밀키는 충분히 길어야 한다.
+HS256 기준 최소 256비트, 즉 32바이트 이상이 좋다.
+```
+
+### 4. createToken 메서드 만들기
+
+`JwtTokenProvider`에 토큰 생성 메서드를 만든다.
+
+메서드 이름:
+
+```text
+createToken
+```
+
+파라미터:
+
+```text
+Long userId
+String email
+```
+
+반환값:
+
+```text
+String
+```
+
+토큰에 담을 정보:
+
+```text
+subject: email
+claim: userId
+issuedAt: 생성 시간
+expiration: 만료 시간
+signature: secretKey로 서명
+```
+
+### 5. LoginResponse에 생성자 추가
+
+로그인 성공 응답에 필요한 값을 넣을 수 있게 만든다.
+
+필요한 값:
+
+```text
+accessToken
+tokenType
+userId
+email
+name
+```
+
+`tokenType`은 일단 `"Bearer"`로 내려주면 된다.
+
+### 6. UserService.loginUser 흐름 바꾸기
+
+현재 흐름:
+
+```text
+email로 User 찾기
+비밀번호 비교
+UserResponse 반환
+```
+
+변경할 흐름:
+
+```text
+email로 User 찾기
+비밀번호 비교
+JWT 토큰 생성
+LoginResponse 반환
+```
+
+구체적인 흐름:
+
+```text
+1. request.getEmail()로 User 조회
+2. 없으면 예외
+3. passwordEncoder.matches(request.getPassword(), user.getPassword())로 비밀번호 확인
+4. 틀리면 예외
+5. jwtTokenProvider.createToken(user.getId(), user.getEmail()) 호출
+6. 생성된 토큰을 LoginResponse에 담기
+7. LoginResponse 반환
+```
+
+### 7. UserController.login 반환 타입 바꾸기
+
+`UserService.loginUser()`가 `LoginResponse`를 반환하도록 바뀌면 컨트롤러도 맞춰야 한다.
+
+목표 응답 예시:
+
+```json
+{
+  "accessToken": "eyJhbGciOiJIUzI1NiJ9...",
+  "tokenType": "Bearer",
+  "userId": 1,
+  "email": "test@test.com",
+  "name": "test"
+}
+```
+
+## 다음 리뷰 때 확인할 파일
+
+다음 작업 후 Codex에게 보여줄 파일:
+
+- `JwtTokenProvider.java`
+- `LoginResponse.java`
+- `UserService.java`
+- `UserController.java`
+- `application.properties`
+- `build.gradle`
+
+## 현재 주의할 점
+
+### 1. JWT 발급과 JWT 인증은 다르다
+
+지금 목표는 JWT 발급이다.
+
+```text
+로그인 성공 -> 토큰 문자열 생성 -> 응답으로 내려줌
+```
+
+JWT 인증은 나중 단계다.
+
+```text
+요청 헤더에서 토큰 읽기
+-> 토큰 검증
+-> 사용자 인증 처리
+```
+
+### 2. 로그인에서는 encode가 아니라 matches를 쓴다
+
+회원가입:
+
+```text
+passwordEncoder.encode(rawPassword)
+```
+
+로그인:
+
+```text
+passwordEncoder.matches(rawPassword, encodedPassword)
+```
+
+### 3. 토큰에는 비밀번호를 넣으면 안 된다
+
+JWT에는 절대 비밀번호를 담지 않는다.
+
+넣어도 되는 정보:
+
+```text
+userId
+email
+```
+
+주의할 정보:
+
+```text
+password
+개인정보
+민감한 값
+```
+
+### 4. jwt.secret은 나중에 환경변수로 분리해야 한다
+
+현재는 학습용으로 `application.properties`에 직접 적었다.
+
+나중에는 환경변수나 별도 설정으로 분리해야 한다.
