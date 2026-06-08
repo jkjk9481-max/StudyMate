@@ -1,9 +1,6 @@
 package com.studymate.backend.user.controller;
 
-import com.studymate.backend.user.dto.UserCreateRequest;
-import com.studymate.backend.user.dto.UserLoginRequest;
-import com.studymate.backend.user.dto.UserResponse;
-import com.studymate.backend.user.dto.UserSignUpRequest;
+import com.studymate.backend.user.dto.*;
 import com.studymate.backend.user.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -27,7 +24,7 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    public UserResponse login(@RequestBody @Valid UserLoginRequest request) {
+    public LoginResponse login(@RequestBody @Valid UserLoginRequest request) {
         return userService.loginUser(request);
     }
 }
