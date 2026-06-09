@@ -23,6 +23,284 @@ StudyMate 백엔드를 만들고, 이후 프론트엔드와 연결한다.
 -> 로그인 성공 시 JWT 발급
 ```
 
+---
+
+## 2026-06-08 JWT 학습 진행 정리
+
+### 지금까지 직접 구현/학습한 것
+
+현재 목표는 로그인 성공 후 JWT access token을 발급하는 것이다.
+
+완료한 흐름:
+
+```text
+회원가입
+-> 비밀번호 BCrypt 암호화 저장
+-> 로그인
+-> passwordEncoder.matches(...)로 비밀번호 확인
+-> JwtTokenProvider.createToken(...) 호출
+-> LoginResponse로 accessToken 반환
+```
+
+### JwtTokenProvider 역할
+
+`JwtTokenProvider`는 JWT 토큰을 만들고, 나중에는 토큰을 검증하고, 토큰 안의 사용자 정보를 꺼내는 클래스다.
+
+현재 핵심 역할:
+
+```text
+createToken(userId, email)
+-> userId와 email을 JWT 안에 넣음
+-> 발급 시간과 만료 시간을 넣음
+-> secretKey로 서명함
+-> JWT 문자열을 반환함
+```
+
+중요한 점:
+
+```text
+JWT 안에는 비밀번호를 절대 넣지 않는다.
+JWT 안에는 현재 userId, email 정도만 넣는다.
+```
+
+### createToken에서 배운 것
+
+```text
+Date now = 현재 시간
+Date expiryDate = 현재 시간 + jwt.expiration
+subject = email
+claim "userId" = userId
+issuedAt = 토큰 발급 시간
+expiration = 토큰 만료 시간
+signWith(secretKey) = 서버 비밀키로 서명
+compact() = JWT 문자열 완성
+```
+
+### validateToken 역할
+
+`validateToken(String token)`은 JWT가 정상 토큰인지 확인해서 `true` 또는 `false`를 반환하는 메서드다.
+
+정상 토큰의 기준:
+
+```text
+1. JWT 형식이 맞는가?
+2. 우리 서버 secretKey로 서명된 토큰인가?
+3. 만료 시간이 지나지 않았는가?
+```
+
+기억할 흐름:
+
+```text
+try 안에서 parseSignedClaims(token)을 시도
+성공하면 true
+JwtException 등이 발생하면 false
+```
+
+주의:
+
+```text
+validateToken 안에서 validateToken(token)을 다시 호출하면 안 된다.
+자기 자신을 계속 부르는 무한 재귀가 된다.
+```
+
+### getEmailFromToken 역할
+
+`getEmailFromToken(String token)`은 JWT 안에서 email을 꺼내는 메서드다.
+
+토큰을 만들 때 email을 이렇게 넣었다:
+
+```text
+subject(email)
+```
+
+그래서 꺼낼 때는:
+
+```text
+parseSignedClaims(token)
+-> getPayload()
+-> getSubject()
+```
+
+중요한 점:
+
+```text
+token = JWT 전체 문자열
+email = JWT 안의 subject 값
+```
+
+따라서 `return token`이 아니라 `return email`을 해야 한다.
+
+### UserService.loginUser 변경 내용
+
+기존 로그인 응답:
+
+```text
+UserResponse 반환
+```
+
+변경된 로그인 응답:
+
+```text
+LoginResponse 반환
+```
+
+현재 흐름:
+
+```text
+1. request.getEmail()로 사용자 조회
+2. 없으면 예외
+3. passwordEncoder.matches(request.getPassword(), user.getPassword())로 비밀번호 확인
+4. 틀리면 예외
+5. jwtTokenProvider.createToken(user.getId(), user.getEmail())로 토큰 생성
+6. LoginResponse에 accessToken, tokenType, userId, email, name 담아서 반환
+```
+
+### 지금 특히 기억해야 할 개념
+
+```text
+UserLoginRequest = 클라이언트가 보낸 로그인 요청 데이터
+User = DB에서 찾은 사용자 엔티티
+PasswordEncoder = 비밀번호 암호화/검증 도구
+JwtTokenProvider = JWT 생성/검증/정보 추출 도구
+LoginResponse = 로그인 성공 응답 DTO
+Claims = JWT 안에 들어있는 데이터 묶음
+subject = JWT의 대표 사용자 값, 현재는 email
+claim = JWT 안에 추가로 넣는 데이터, 현재는 userId
+```
+
+### 다음에 해야 할 것
+
+추천 순서:
+
+```text
+1. validateToken 메서드 정리
+   - try 안에서 parseSignedClaims(token) 한 번만 호출
+   - 성공하면 true
+   - JwtException 또는 IllegalArgumentException이면 false
+
+2. getUserIdFromToken(String token) 만들기
+   - parseSignedClaims(token)
+   - getPayload()
+   - get("userId", Number.class)
+   - longValue()로 Long 변환
+
+3. UserController.login 반환 타입 확인
+   - UserResponse가 아니라 LoginResponse여야 함
+
+4. 실제 로그인 API 테스트
+   - POST /api/users/login
+   - 응답에 accessToken, tokenType, userId, email, name이 나오는지 확인
+
+5. 그 다음 단계에서 JwtAuthenticationFilter 만들기
+   - Authorization 헤더에서 Bearer 토큰 읽기
+   - validateToken으로 검증
+   - getEmailFromToken, getUserIdFromToken으로 사용자 정보 추출
+   - SecurityContext에 인증 정보 저장
+```
+
+### 중소/스타트업 백엔드 개발자 기준으로 필요한 스펙
+
+2026년 기준 주니어 Java/Spring 백엔드 채용에서 반복적으로 보이는 역량:
+
+```text
+Java 기본 문법과 객체지향
+Spring Boot로 REST API 개발
+Spring Data JPA / Hibernate
+RDBMS 설계와 SQL
+회원가입/로그인/JWT 인증
+비밀번호 암호화와 보안 기본
+Git/GitHub 사용
+테스트 코드 기초
+배포 경험
+문제 해결 기록이 있는 개인 프로젝트
+```
+
+중소/스타트업에서 특히 좋아하는 포트폴리오:
+
+```text
+실제로 실행되는 백엔드 프로젝트 1~2개
+회원가입/로그인/JWT 인증
+CRUD API
+DB 테이블 설계
+예외 처리
+검증 처리
+테스트 코드 일부
+배포 URL 또는 실행 방법
+README에 API 명세와 기술 설명
+```
+
+있으면 좋은 추가 역량:
+
+```text
+Docker
+AWS 또는 배포 경험
+Redis 기초
+CI/CD 기초
+쿼리 최적화 기초
+Spring Security 인증 필터 구조
+```
+
+### 현재 내 실력 위치
+
+현재 위치는 백엔드 기준으로:
+
+```text
+입문자 후반 ~ 주니어 준비 초입
+```
+
+할 수 있게 된 것:
+
+```text
+Spring Boot 프로젝트 구조를 따라가고 있음
+Controller / Service / Repository 흐름을 이해하기 시작함
+DTO와 Entity 역할을 구분하기 시작함
+회원가입과 로그인 흐름을 직접 구현 중
+BCrypt 비밀번호 암호화와 matches 검증 개념을 배움
+JWT 생성 흐름을 직접 작성하고 있음
+```
+
+아직 부족한 것:
+
+```text
+Java 문법을 완전히 자유롭게 쓰는 단계는 아님
+메서드 반환값과 변수 저장 흐름에서 아직 헷갈림
+try-catch와 예외 처리 경험이 부족함
+Spring Security 내부 흐름은 아직 시작 단계
+테스트 코드와 배포 경험이 아직 부족함
+```
+
+현실적인 평가:
+
+```text
+아직 바로 신입 백엔드 개발자로 지원하기에는 부족하다.
+하지만 StudyMate 인증 기능을 끝까지 직접 구현하고,
+API 테스트, 예외 처리, README, 배포까지 해보면
+중소/스타트업 주니어 지원 준비 단계로 올라갈 수 있다.
+```
+
+### 앞으로의 학습 방향
+
+당장 우선순위:
+
+```text
+1. JWT 발급/검증/정보 추출 완성
+2. Spring Security 인증 필터 연결
+3. 로그인 후 보호 API 접근 테스트
+4. 예외 메시지와 응답 형식 정리
+5. Postman 또는 curl로 API 테스트 기록
+6. README에 인증 흐름 정리
+```
+
+그 다음 우선순위:
+
+```text
+1. 테스트 코드 작성
+2. DB 연관관계와 JPA 심화
+3. Docker로 실행 환경 만들기
+4. 간단한 서버 배포
+5. 포트폴리오 문서화
+```
+
 아직 JWT 인증 필터는 만들지 않는다.
 
 ## 지금까지 완료한 것
